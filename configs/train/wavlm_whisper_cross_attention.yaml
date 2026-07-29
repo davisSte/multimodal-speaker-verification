@@ -1,0 +1,53 @@
+name: wavlm_whisper_cross_attention
+
+model:
+  family: whisper_wavlm_cross_attention
+  audio_encoder:
+    type: wavlm_ecapa
+    wavlm_checkpoint: /path/to/wavlm_large.pt
+    freeze_wavlm: true
+    backend_kwargs:
+      pooling_mode: attentive_stats
+  whisper_encoder:
+    checkpoint: /path/to/whisper_medium.pt
+    allow_download: false
+    freeze_model: true
+    layer_idx: -1
+  embedding_dim: 192
+  normalize: true
+  fusion:
+    type: cross_attn
+    pooling: attentive_stats
+    pooling_hidden_dim: 128
+    attn_window_k: 0
+    pos_max_len: 1200
+    pre_concat_layernorm: false
+    grouped: true
+    concat_fullseq: true
+    pos_offsets: true
+    self_attn: true
+  hybrid:
+    frame_dim: 1536
+    whisper_dim: 1024
+    d_k: 256
+    d_v: 256
+    cross_attn_heads: 4
+  speaker_loss:
+    margin: 0.2
+    scale: 30.0
+
+data:
+  manifest: /path/to/train_audio_manifest.txt
+  sample_rate: 16000
+  segment_seconds: 4.0
+  speakers_per_batch: 64
+  utterances_per_speaker: 5
+
+training:
+  epochs: 10
+  batch_size: 64
+  learning_rate: 1e-4
+  weight_decay: 0.0
+  grad_clip: 1.0
+
+output_dir: /path/to/output/wavlm_whisper_cross_attention

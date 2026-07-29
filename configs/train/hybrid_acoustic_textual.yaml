@@ -1,0 +1,45 @@
+name: hybrid_acoustic_textual
+
+model:
+  family: hybrid_audio_text
+  audio_encoder:
+    type: wavlm_ecapa
+    wavlm_checkpoint: /path/to/wavlm_large.pt
+    freeze_wavlm: true
+    backend_kwargs:
+      pooling_mode: attentive_stats
+  text_encoder:
+    type: luar
+    repo_id: rrivera1849/LUAR-CRUD
+    freeze_model: false
+  frame_dim: 1536
+  d_k: 256
+  d_v: 256
+  fusion_mode: concat
+  cross_attn_heads: 4
+  self_attn_heads: 4
+  self_attn_layers: 1
+  use_token_self_attention: true
+  use_luar_stream: true
+  use_stat_pooling: false
+  hybrid_dim: 256
+  final_dim: 256
+  sluar_dim: 512
+  normalize: true
+  speaker_loss:
+    margin: 0.2
+    scale: 30.0
+
+data:
+  manifest: /path/to/train_audio_text_manifest.txt
+  sample_rate: 16000
+  segment_seconds: 4.0
+
+training:
+  epochs: 30
+  batch_size: 8
+  learning_rate: 5e-5
+  weight_decay: 0.01
+  grad_clip: 1.0
+
+output_dir: /path/to/output/hybrid_acoustic_textual

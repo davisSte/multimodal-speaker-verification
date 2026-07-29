@@ -1,0 +1,41 @@
+[project]
+name = "multimodal-asv"
+version = "0.1.0"
+description = "Multimodal multi-utterance speaker verification models for SLT 2026."
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    "einops>=0.7",
+    "huggingface-hub>=0.23",
+    "numpy>=1.24",
+    "praat-parselmouth>=0.4.7",
+    "pronouncing>=0.3.0",
+    "pyyaml>=6.0.3",
+    "scikit-learn>=1.3",
+    "sentencepiece>=0.2.1",
+    "soundfile>=0.12",
+    "speechbrain>=1.0",
+    "torch==2.4.0",
+    "torchaudio==2.4.0",
+    "tqdm>=4.66",
+    "transformers>=4.40",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.5",
+]
+whisper = [
+    "openai-whisper>=20250625",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

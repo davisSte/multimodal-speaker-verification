@@ -1,0 +1,46 @@
+name: frame_audio_text_weighted_05A_05T
+
+model:
+  family: frame_pooled_audio_text
+  audio_encoder:
+    type: wavlm_ecapa
+    wavlm_checkpoint: /path/to/wavlm_large.pt
+    freeze_wavlm: true
+    backend_kwargs:
+      pooling_mode: attentive_stats
+  text_encoder:
+    type: luar
+    checkpoint_path: /path/to/luar_checkpoint.ckpt
+    freeze_model: true
+  audio:
+    embedding_dim: 192
+    normalize: true
+  fusion:
+    type: weighted_sum
+    audio_dim: 192
+    text_dim: 512
+    final_dim: 192
+    audio_weight: 0.5
+    text_weight: 0.5
+    pre_fusion_layernorm: true
+    normalize_branches: true
+    normalize: true
+  speaker_loss:
+    margin: 0.2
+    scale: 30.0
+
+data:
+  manifest: /path/to/train_audio_text_manifest.txt
+  sample_rate: 16000
+  segment_seconds: 4.0
+  speakers_per_batch: 64
+  utterances_per_speaker: 5
+
+training:
+  epochs: 5
+  batch_size: 64
+  learning_rate: 1e-4
+  weight_decay: 0.01
+  grad_clip: 1.0
+
+output_dir: /path/to/output/frame_audio_text_weighted_05A_05T

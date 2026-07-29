@@ -1,0 +1,33 @@
+name: audio_only_query_attention
+
+model:
+  family: query_attention_audio
+  audio_encoder:
+    type: wavlm_ecapa
+    wavlm_checkpoint: /path/to/wavlm_large.pt
+    freeze_wavlm: true
+    backend_kwargs:
+      pooling_mode: attentive_stats
+  embedding_dim: 192
+  attention:
+    heads: 4
+    temperature: 0.3
+  speaker_loss:
+    margin: 0.2
+    scale: 30.0
+
+data:
+  manifest: /path/to/train_audio_manifest.txt
+  sample_rate: 16000
+  segment_seconds: 4.0
+  speakers_per_batch: 64
+  utterances_per_speaker: 5
+
+training:
+  epochs: 5
+  batch_size: 64
+  learning_rate: 1e-4
+  weight_decay: 0.0
+  grad_clip: 1.0
+
+output_dir: /path/to/output/audio_only_query_attention

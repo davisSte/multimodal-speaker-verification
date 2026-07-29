@@ -1,0 +1,38 @@
+name: utt_audio_text_concat
+
+model:
+  family: utterance_audio_text_fusion
+  audio_encoder:
+    type: wavlm_ecapa
+    wavlm_checkpoint: /path/to/wavlm_large.pt
+    freeze_wavlm: true
+    backend_kwargs:
+      pooling_mode: attentive_stats
+  text_encoder:
+    type: luar
+    checkpoint_path: /path/to/luar_checkpoint.ckpt
+    freeze_model: true
+  fusion:
+    modalities: [audio, text]
+    audio_dim: 192
+    text_dim: 512
+    projection_dim: 256
+    final_dim: 192
+    pre_concat_layernorm: true
+    normalize: true
+  speaker_loss:
+    margin: 0.2
+    scale: 30.0
+
+data:
+  manifest: /path/to/train_audio_text_manifest.txt
+  sample_rate: 16000
+  segment_seconds: 4.0
+
+training:
+  epochs: 5
+  batch_size: 64
+  learning_rate: 1e-4
+  weight_decay: 0.0
+
+output_dir: /path/to/output/utt_audio_text_concat
