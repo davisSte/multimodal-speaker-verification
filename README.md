@@ -51,6 +51,7 @@ We additionally use an anonymized version of the Fisher corpus generated using [
 
 This repository supports Python 3.10 and PyTorch 2.4.0.
 
+### Environment Setup
 Create the environment from the repository root:
 
 ```bash
@@ -59,14 +60,7 @@ source .venv/bin/activate
 uv pip install -e .[dev,whisper]
 ```
 
-Reference runtime:
-
-- Python `3.10.14`
-- `torch 2.4.0+cu121`
-- `torchaudio 2.4.0+cu121`
-- `speechbrain 1.0.3`
-- `praat-parselmouth 0.4.7`
-
+### Pretrained Checkpoints
 WavLM-Large checkpoint:
 
 - Download `WavLM-Large.pt` from [Google Drive](https://drive.google.com/file/d/12-cB34qCTvByWT-QtOcZaqwwO21FLSqU/view).
