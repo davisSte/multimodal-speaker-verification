@@ -1,6 +1,50 @@
-# Multimodal ASV
+# Multimodal Speaker Verification as a Threat to Speaker Anonymization
 
-This is the official repository for ["Multimodal Speaker Verification as a Threat to Speaker Anonymization"](https://arxiv.org/pdf/2607.19636)
+[![arXiv](https://img.shields.io/badge/arXiv-2607.19636-b31b1b.svg)](https://arxiv.org/abs/2607.19636)
+
+This is the official repository for the paper **[“Multimodal Speaker Verification as a Threat to Speaker Anonymization”](https://arxiv.org/abs/2607.19636)**.
+
+
+## Abstract 
+
+>*Most automatic speaker verification (ASV) systems
+operate on individual utterances, despite real-world interactions
+typically consisting of multiple utterances. As speech accumu-
+lates, increasingly rich speaker information becomes available
+through acoustic, prosodic, and linguistic cues, potentially chal-
+lenging speaker anonymization methods that primarily target
+vocal characteristics. We investigate ASV in a multi-utterance,
+multimodal setting and examine whether aggregating information
+across anonymized speech impacts privacy. We first study audio-
+only aggregation across multiple anonymized utterances and
+observe consistent performance improvements as more speech
+becomes available. We then incorporate prosodic and linguistic
+information, showing that multimodal systems outperform uni-
+modal approaches. Finally, we compare aggregation strategies
+and find that frame-level aggregation yields the lowest EERs.
+Even with only five anonymized utterances, combining audio
+and text reduces EER by over 15% relative to audio-only ag-
+gregation, demonstrating that substantial speaker-discriminative
+information remains accessible despite anonymization*.
+
+## Data
+
+Following prior work on privacy in long-form speech, [*Content Anonymization for Privacy in Long-form Audio*](https://arxiv.org/abs/2510.12780), we use the Fisher English Training Speech corpus:
+
+- [Part 1 — LDC2004S13](https://catalog.ldc.upenn.edu/LDC2004S13)
+- [Part 2 — LDC2005S13](https://catalog.ldc.upenn.edu/LDC2005S13)
+
+Fisher comprises two-speaker telephone conversations with multiple utterances from each participant, making it well suited for our multi-utterance, multimodal setting. In addition to supporting a long-form, multi-utterance setting, Fisher’s conversational nature captures speaker-dependent linguistic patterns, including lexical preferences, phrasing, and discourse style, that may accumulate across a conversation and reveal additional speaker information.
+
+
+
+> **Note:** The Fisher corpus is distributed under license by the [Linguistic Data Consortium (LDC)](https://www.ldc.upenn.edu/) and is not included in this repository. Users must obtain both parts directly from the LDC. 
+
+
+### Anonymized Speech
+
+We additionally use an anonymized version of the Fisher corpus generated using [Stream-Voice-Anon](https://arxiv.org/abs/2601.13948). Each Fisher utterance is anonymized independently using a target speaker randomly selected from the [`train-clean-360` and `train-other-500` subsets of LibriSpeech](https://www.openslr.org/12/). The target-speaker pool includes only LibriSpeech utterances longer than 4 seconds.
+
 
 
 ## Quick Start
