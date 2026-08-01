@@ -19,10 +19,7 @@ from pathlib import Path
 from multimodal_asv.anonymization.streamvoiceanon import StreamVoiceAnonBatchRunner, write_metadata
 
 DEFAULT_STREAMVOICEANON_ROOT = (
-    Path(__file__).resolve().parents[1]
-    / "src"
-    / "multimodal_asv"
-    / "anonymization"
+    Path(__file__).resolve().parent
     / "StreamVoiceAnon"
 )
 

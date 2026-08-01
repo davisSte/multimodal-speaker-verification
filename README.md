@@ -86,7 +86,7 @@ The repository includes data-preparation utilities under `scripts/data_prep/` fo
 - creating aligned `N=5`, `N=10`, and `N=15` trial files where smaller trials are subsets of larger ones
 - building manifests from generated trials
 
-The StreamVoiceAnon batch runner is provided as `scripts/anonymize_with_streamvoiceanon.py`.
+The StreamVoiceAnon batch runner is provided as the module `multimodal_asv.anonymization.anonymize_with_streamvoiceanon`.
 
 The expected starting point is a plain text file with one utterance per line:
 
@@ -209,10 +209,10 @@ Still to be added:
 
 ## Speech Anonymization
 
-The Fisher utterances are anonymized using [StreamVoiceAnon](https://arxiv.org/abs/2601.13948) through the wrapper script:
+The Fisher utterances are anonymized using [StreamVoiceAnon](https://arxiv.org/abs/2601.13948) through the wrapper module:
 
 ```text
-scripts/anonymize_with_streamvoiceanon.py
+python -m multimodal_asv.anonymization.anonymize_with_streamvoiceanon
 ```
 
 In the experiments reported in the paper, target utterances were selected from the LibriSpeech `train-clean-360` and `train-other-500` subsets. Only utterances longer than four seconds were included in the target-speaker pool.
@@ -262,7 +262,7 @@ For example:
 ### Run anonymization
 
 ```bash
-uv run python scripts/anonymize_with_streamvoiceanon.py \
+uv run python -m multimodal_asv.anonymization.anonymize_with_streamvoiceanon \
   --pairs-file data/source_reference_pairs.txt \
   --out-root data/anonymized_fisher \
   --config-path configs/config_firefly_arvcasr_8192_delay0_8.yaml \
@@ -293,7 +293,7 @@ data/anonymized_fisher/fisher_spk1/utt1__to__libri_spk1__ref1.wav
 For parallel execution, divide the pair file into deterministic shards and launch one process per shard. For example, launch the first of eight workers using:
 
 ```bash
-uv run python scripts/anonymize_with_streamvoiceanon.py \
+uv run python -m multimodal_asv.anonymization.anonymize_with_streamvoiceanon \
   --pairs-file data/source_reference_pairs.txt \
   --out-root data/anonymized_fisher \
   --config-path configs/config_firefly_arvcasr_8192_delay0_8.yaml \
@@ -313,7 +313,7 @@ To resume an interrupted run, rerun the same command with the same `--out-root`.
 When previous outputs are stored in another directory, specify that directory using `--skip-existing-root`:
 
 ```bash
-uv run python scripts/anonymize_with_streamvoiceanon.py \
+uv run python -m multimodal_asv.anonymization.anonymize_with_streamvoiceanon \
   --pairs-file data/source_reference_pairs.txt \
   --out-root data/anonymized_fisher_new \
   --skip-existing-root /path/to/previous_outputs \
