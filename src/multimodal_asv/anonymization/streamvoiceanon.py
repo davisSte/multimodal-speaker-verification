@@ -98,6 +98,46 @@ def output_relative_path(pair: SourceReferencePair) -> Path:
     return Path(pair.source_speaker) / f"{source_stem}__to__{pair.reference_speaker}__{reference_stem}.wav"
 
 
+def build_original_to_anonymized_mapping(
+    pairs_file: str | Path,
+    out_root: str | Path,
+) -> dict[str, str]:
+    """Build an original-audio to anonymized-audio path mapping from a pair file."""
+
+    pairs_path = Path(pairs_file).expanduser().resolve()
+    output_root = Path(out_root).expanduser().resolve()
+    if not pairs_path.is_file():
+        raise FileNotFoundError(f"Pair file not found: {pairs_path}")
+
+    mapping: dict[str, str] = {}
+    with pairs_path.open("r", encoding="utf-8", errors="ignore") as handle:
+        for line_num, line in enumerate(handle, start=1):
+            pair = parse_pair_line(line)
+            if pair is None:
+                continue
+            source_path = resolve_pair_audio_path(pair.source_wav, pairs_path)
+            anonymized_path = output_root / output_relative_path(pair)
+            previous = mapping.get(str(source_path))
+            if previous is not None and previous != str(anonymized_path):
+                raise ValueError(f"Source path maps to multiple anonymized files at line {line_num}: {source_path}")
+            mapping[str(source_path)] = str(anonymized_path)
+    return mapping
+
+
+def write_original_to_anonymized_mapping(
+    mapping_out: str | Path,
+    pairs_file: str | Path,
+    out_root: str | Path,
+) -> dict[str, str]:
+    """Write an original-to-anonymized JSON mapping and return it."""
+
+    mapping = build_original_to_anonymized_mapping(pairs_file, out_root)
+    mapping_path = Path(mapping_out).expanduser().resolve()
+    mapping_path.parent.mkdir(parents=True, exist_ok=True)
+    mapping_path.write_text(json.dumps(mapping, indent=2) + "\n", encoding="utf-8")
+    return mapping
+
+
 class StreamVoiceAnonBatchRunner:
     """Run StreamVoiceAnon inference over source/reference pair files."""
 
