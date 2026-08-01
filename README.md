@@ -86,6 +86,8 @@ The repository includes data-preparation utilities under `scripts/data_prep/` fo
 - creating aligned `N=5`, `N=10`, and `N=15` trial files where smaller trials are subsets of larger ones
 - building manifests from generated trials
 
+The StreamVoiceAnon batch runner is provided as `scripts/anonymize_with_streamvoiceanon.py`.
+
 The expected starting point is a plain text file with one utterance per line:
 
 ```text
@@ -202,7 +204,124 @@ Still to be added:
 - full train/validation speaker split scripts
 - LUAR split preparation from audio speaker lists
 - audio+text validation asset preparation
+- source/reference pair-file creation for anonymization
 - anonymized-data split and manifest generation
+
+## Speech Anonymization
+
+The Fisher utterances are anonymized using [StreamVoiceAnon](https://arxiv.org/abs/2601.13948) through the wrapper script:
+
+```text
+scripts/anonymize_with_streamvoiceanon.py
+```
+
+In the experiments reported in the paper, target utterances were selected from the LibriSpeech `train-clean-360` and `train-other-500` subsets. Only utterances longer than four seconds were included in the target-speaker pool.
+
+Before running anonymization:
+
+- install the optional anonymization dependencies with `uv pip install -e .[anon]`
+- use the bundled StreamVoiceAnon source under `src/multimodal_asv/anonymization/StreamVoiceAnon`
+- place the StreamVoiceAnon pretrained checkpoint under the bundled source tree, or pass an absolute path to it
+- prepare a source-reference pair file in the format below
+
+The StreamVoiceAnon source used by the wrapper is included in this repository. If you need to refresh it from upstream, use [Plachtaa/StreamVoiceAnon](https://github.com/Plachtaa/StreamVoiceAnon) as the source.
+
+The StreamVoiceAnon checkpoint is not included in this repository. Download the pretrained artifacts from [Plachta/StreamVoiceAnon on Hugging Face](https://huggingface.co/Plachta/StreamVoiceAnon):
+
+```bash
+mkdir -p src/multimodal_asv/anonymization/StreamVoiceAnon/pretrained_checkpoints
+hf download Plachta/StreamVoiceAnon \
+  --local-dir src/multimodal_asv/anonymization/StreamVoiceAnon/pretrained_checkpoints
+```
+
+The main checkpoint used by the wrapper is expected at:
+
+```text
+src/multimodal_asv/anonymization/StreamVoiceAnon/pretrained_checkpoints/dual_ar_delay_0_8.pth
+```
+
+Alternatively, keep the checkpoint elsewhere and pass its absolute path with `--checkpoint-path`.
+
+### Source-reference pairs
+
+Anonymization uses a source-reference pair file in which each line defines one conversion:
+
+```text
+source_wav|source_speaker|reference_wav|reference_speaker
+```
+
+For example:
+
+```text
+/path/to/fisher/utt1.wav|fisher_spk1|/path/to/librispeech/ref1.flac|libri_spk1
+/path/to/fisher/utt2.wav|fisher_spk1|/path/to/librispeech/ref2.flac|libri_spk2
+```
+
+`source_wav` and `reference_wav` specify the source and target-reference utterances. The speaker IDs are retained as metadata and used to construct deterministic output filenames.
+
+### Run anonymization
+
+```bash
+uv run python scripts/anonymize_with_streamvoiceanon.py \
+  --pairs-file data/source_reference_pairs.txt \
+  --out-root data/anonymized_fisher \
+  --config-path configs/config_firefly_arvcasr_8192_delay0_8.yaml \
+  --checkpoint-path pretrained_checkpoints/dual_ar_delay_0_8.pth \
+  --delay 2 \
+  --alpha 1.0 \
+  --metadata-out data/anonymized_fisher/metadata.json
+```
+
+Update `--pairs-file` and `--out-root` for the local setup. By default, the script uses the bundled StreamVoiceAnon source under `src/multimodal_asv/anonymization/StreamVoiceAnon`; override this with `--streamvoiceanon-root` if StreamVoiceAnon is stored elsewhere. The configuration and checkpoint paths are resolved relative to `--streamvoiceanon-root` unless absolute paths are provided.
+
+### Output structure
+
+The anonymized waveforms are written as:
+
+```text
+<out_root>/<source_speaker>/<source_stem>__to__<reference_speaker>__<reference_stem>.wav
+```
+
+For example:
+
+```text
+data/anonymized_fisher/fisher_spk1/utt1__to__libri_spk1__ref1.wav
+```
+
+### Multi-GPU or Slurm execution
+
+For parallel execution, divide the pair file into deterministic shards and launch one process per shard. For example, launch the first of eight workers using:
+
+```bash
+uv run python scripts/anonymize_with_streamvoiceanon.py \
+  --pairs-file data/source_reference_pairs.txt \
+  --out-root data/anonymized_fisher \
+  --config-path configs/config_firefly_arvcasr_8192_delay0_8.yaml \
+  --checkpoint-path pretrained_checkpoints/dual_ar_delay_0_8.pth \
+  --delay 2 \
+  --alpha 1.0 \
+  --num-shards 8 \
+  --shard-id 0
+```
+
+Launch the remaining workers with `--shard-id 1` through `--shard-id 7`, while keeping `--num-shards 8` fixed.
+
+### Resume an interrupted run
+
+To resume an interrupted run, rerun the same command with the same `--out-root`. The script skips outputs that already exist and processes only the missing conversions.
+
+When previous outputs are stored in another directory, specify that directory using `--skip-existing-root`:
+
+```bash
+uv run python scripts/anonymize_with_streamvoiceanon.py \
+  --pairs-file data/source_reference_pairs.txt \
+  --out-root data/anonymized_fisher_new \
+  --skip-existing-root /path/to/previous_outputs \
+  --config-path configs/config_firefly_arvcasr_8192_delay0_8.yaml \
+  --checkpoint-path pretrained_checkpoints/dual_ar_delay_0_8.pth \
+  --delay 2 \
+  --alpha 1.0
+```
 
 Train with:
 
