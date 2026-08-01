@@ -2,59 +2,39 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-2607.19636-b31b1b.svg)](https://arxiv.org/abs/2607.19636)
 
-This is the official repository for the paper **[“Multimodal Speaker Verification as a Threat to Speaker Anonymization”](https://arxiv.org/abs/2607.19636)**.
+Official implementation of **[“Multimodal Speaker Verification as a Threat to Speaker Anonymization”](https://arxiv.org/abs/2607.19636)**.
 
+This repository supports multi-utterance speaker verification using acoustic, linguistic, and prosodic information. It includes audio-only, text-only, and multimodal training and evaluation, along with utilities for Fisher data preparation and StreamVoiceAnon anonymization.
 
-## Abstract 
+## Abstract
 
 >*Most automatic speaker verification (ASV) systems
 operate on individual utterances, despite real-world interactions
-typically consisting of multiple utterances. As speech accumu-
-lates, increasingly rich speaker information becomes available
-through acoustic, prosodic, and linguistic cues, potentially chal-
-lenging speaker anonymization methods that primarily target
+typically consisting of multiple utterances. As speech accumulates,
+increasingly rich speaker information becomes available
+through acoustic, prosodic, and linguistic cues, potentially challenging
+speaker anonymization methods that primarily target
 vocal characteristics. We investigate ASV in a multi-utterance,
 multimodal setting and examine whether aggregating information
-across anonymized speech impacts privacy. We first study audio-
-only aggregation across multiple anonymized utterances and
+across anonymized speech impacts privacy. We first study audio-only
+aggregation across multiple anonymized utterances and
 observe consistent performance improvements as more speech
 becomes available. We then incorporate prosodic and linguistic
-information, showing that multimodal systems outperform uni-
-modal approaches. Finally, we compare aggregation strategies
+information, showing that multimodal systems outperform unimodal
+approaches. Finally, we compare aggregation strategies
 and find that frame-level aggregation yields the lowest EERs.
 Even with only five anonymized utterances, combining audio
-and text reduces EER by over 15% relative to audio-only ag-
-gregation, demonstrating that substantial speaker-discriminative
+and text reduces EER by over 15% relative to audio-only aggregation,
+demonstrating that substantial speaker-discriminative
 information remains accessible despite anonymization*.
-
-## Data
-
-Following prior work on privacy in long-form speech, [*Content Anonymization for Privacy in Long-form Audio*](https://arxiv.org/abs/2510.12780), we use the Fisher English Training Speech corpus:
-
-- [Part 1 — LDC2004S13](https://catalog.ldc.upenn.edu/LDC2004S13)
-- [Part 2 — LDC2005S13](https://catalog.ldc.upenn.edu/LDC2005S13)
-- [Part 1 transcripts — LDC2004T19](https://catalog.ldc.upenn.edu/LDC2004T19)
-- [Part 2 transcripts — LDC2005T19](https://catalog.ldc.upenn.edu/LDC2005T19)
-
-Fisher comprises two-speaker telephone conversations with multiple utterances from each participant, making it well suited for our multi-utterance, multimodal setting. In addition to supporting a long-form, multi-utterance setting, Fisher’s conversational nature captures speaker-dependent linguistic patterns, including lexical preferences, phrasing, and discourse style, that may accumulate across a conversation and reveal additional speaker information.
-
-
-
-> **Note:** The Fisher corpus is distributed under license by the [Linguistic Data Consortium (LDC)](https://www.ldc.upenn.edu/) and is not included in this repository. Users must obtain the speech and transcript releases directly from the LDC. 
-
-
-### Anonymized Speech
-
-We additionally use an anonymized version of the Fisher corpus generated using [Stream-Voice-Anon](https://arxiv.org/abs/2601.13948). Each Fisher utterance is anonymized independently using a target speaker randomly selected from the [`train-clean-360` and `train-other-500` subsets of LibriSpeech](https://www.openslr.org/12/). The target-speaker pool includes only LibriSpeech utterances longer than 4 seconds.
-
-
 
 ## Quick Start
 
 This repository supports Python 3.10 and PyTorch 2.4.0.
 
-### Environment Setup
-Create the environment from the repository root:
+### 1. Create the environment
+
+Run the following commands from the repository root:
 
 ```bash
 uv venv --python 3.10
@@ -62,441 +42,64 @@ source .venv/bin/activate
 uv pip install -e .[dev,whisper]
 ```
 
-### Pretrained Checkpoints
-WavLM-Large checkpoint:
-
-- Download `WavLM-Large.pt` from [Google Drive](https://drive.google.com/file/d/12-cB34qCTvByWT-QtOcZaqwwO21FLSqU/view).
-- Set `model.audio_encoder.wavlm_checkpoint` in the config to the downloaded file.
-- Example: `/path/to/checkpoints/WavLM-Large.pt`
-
-Whisper checkpoint:
-
-- Whisper support is based on [openai/whisper](https://github.com/openai/whisper).
-- The Whisper-backed model uses `model.whisper_encoder.checkpoint`.
-- Use a model name such as `medium` with `allow_download: true`, or set it to a local checkpoint path and use `allow_download: false`.
-
-Training configs are in `configs/train/`.
-
-## Data Preparation
-
-The repository includes data-preparation utilities under `scripts/data_prep/` for:
-
-- building manifests from pre-segmented Fisher utterance wavs
-- creating speaker-level train/validation splits
-- sampling validation speakers
-- splitting validation audio into enroll and target subsets
-- creating multi-utterance trial JSONL files
-- creating aligned `N=5`, `N=10`, and `N=15` trial files where smaller trials are subsets of larger ones
-- building manifests from generated trials
-- creating StreamVoiceAnon source-reference pairs
-- rewriting trials and manifests to use anonymized audio paths
-
-The StreamVoiceAnon batch runner is provided as the module `multimodal_asv.anonymization.anonymize_with_streamvoiceanon`.
-
-### 0. Fisher utterance segmentation
-
-The Fisher conversation audio must first be converted into utterance-level wav files. This step follows the Fisher preparation used by [caggazzotti/long-form-speech-anonymization](https://github.com/caggazzotti/long-form-speech-anonymization), and is summarized here so the expected inputs and outputs are explicit.
-
-Required inputs:
-
-- Fisher speech audio from `LDC2004S13` and `LDC2005S13`
-- Fisher transcripts from `LDC2004T19` and `LDC2005T19`
-- Fisher speaker metadata tables, usually named `fe_03_pindata.tbl`
-- `sph2pipe`, used to read Fisher SPH audio
-- an output directory for the utterance wav files
-
-The transcript roots should point to directories containing Fisher transcript files with utterance start/end times, speaker channel labels, and transcript text. The speaker-map files associate Fisher call/channel metadata with speaker IDs. The segmentation script uses those transcript times to cut each two-speaker conversation into separate utterance wavs and names each file with the Fisher call ID, channel, utterance index, and speaker ID.
-
-Example command:
+Install anonymization dependencies only when running StreamVoiceAnon inference:
 
 ```bash
-python /path/to/long-form-speech-anonymization/scripts/prepare_utterance_audio.py \
-  --audio-root /path/to/LDC2004S13/audio \
-  --audio-root /path/to/LDC2005S13/audio \
-  --transcript-root /path/to/LDC2004T19/fe_03_p1_tran/data/trans \
-  --transcript-root /path/to/LDC2005T19/data/trans \
-  --speaker-map /path/to/LDC2004T19/fe_03_p1_tran/doc/fe_03_pindata.tbl \
-  --speaker-map /path/to/LDC2005T19/doc/fe_03_pindata.tbl \
-  --sph2pipe /path/to/sph2pipe \
-  --output-dir data/fisher_utterance_audio
+uv pip install -e .[anon]
 ```
 
-Expected output structure:
+### 2. Download pretrained checkpoints
+
+#### WavLM-Large
+
+1. Download `WavLM-Large.pt` from [Google Drive](https://drive.google.com/file/d/12-cB34qCTvByWT-QtOcZaqwwO21FLSqU/view).
+2. Set `model.audio_encoder.wavlm_checkpoint` in the selected configuration to the downloaded checkpoint path.
+
+#### Whisper
+
+Whisper support is based on [openai/whisper](https://github.com/openai/whisper). The Whisper-backed model uses `model.whisper_encoder.checkpoint`.
+
+Use a model name such as `medium` with `allow_download: true`, or provide a local checkpoint path with `allow_download: false`.
+
+#### StreamVoiceAnon
+
+The StreamVoiceAnon source is included under:
 
 ```text
-data/fisher_utterance_audio/
-  00001/
-    fe_03_00001_A_0_2602.wav
-    fe_03_00001_A_1_2602.wav
-    fe_03_00001_B_0_9182.wav
-  00002/
-    fe_03_00002_A_0_1746.wav
+src/multimodal_asv/anonymization/StreamVoiceAnon
 ```
 
-The final underscore-separated field in each filename is the Fisher speaker ID. Build this repo's audio manifest from those wav files:
+The checkpoint is not included. See [Data Preparation](docs/data_preparation.md#11-prepare-streamvoiceanon) for the download command.
+
+### 3. Configure local paths
+
+Select a configuration under `configs/train/` and set the required:
+
+- training and validation manifests
+- pretrained checkpoint paths
+- output directory
+- modality-specific inputs, when applicable
+
+### 4. Validate the configuration
+
+Before starting training, run a dry run:
 
 ```bash
-uv run python scripts/data_prep/build_fisher_manifest_from_utterance_dir.py \
-  --utterance-root data/fisher_utterance_audio \
-  --manifest-out data/fisher_audio_manifest.txt \
-  --metadata-out data/fisher_audio_manifest.metadata.json
+uv run python scripts/train.py \
+  --config configs/train/audio_only_query_attention.yaml \
+  --dry-run
 ```
 
-The resulting manifest has one utterance per line:
-
-```text
-speaker_id /path/to/audio.wav
-speaker_id /path/to/another_audio.wav
-```
-
-Use the scripts in the following order, depending on what you need.
-
-### 1. Train/validation speaker split
-
-If you need a reproducible speaker-level split from larger source manifests, first create train and validation speaker subsets.
-
-```bash
-uv run python scripts/data_prep/split_audio_manifest_by_speaker.py \
-  --train-source /path/to/train_audio_manifest.txt \
-  --val-source /path/to/validation_audio_manifest.txt \
-  --output-dir data/splits/fisher_audio \
-  --num-train-speakers 2000 \
-  --num-val-speakers 0 \
-  --seed 42
-```
-
-Use `--num-val-speakers 0` to keep all validation speakers. The script checks that train and validation speakers are disjoint, then writes subset manifests, remaining-speaker manifests, speaker lists, and `split_metadata.json`.
-
-### 2. LUAR/text-only split preparation
-
-Create LUAR-style text-only train/validation files from audio-text manifests and the speaker lists from the audio split:
-
-```bash
-uv run python scripts/data_prep/build_luar_split_from_audio_speakers.py \
-  --train-source /path/to/train_audio_text_manifest.txt \
-  --val-source /path/to/validation_audio_text_manifest.txt \
-  --train-speakers data/splits/fisher_audio/train_speakers.txt \
-  --val-speakers data/splits/fisher_audio/validation_speakers.txt \
-  --dataset-name fisher \
-  --output-dir data/splits/fisher_luar \
-  --encoding ascii
-```
-
-The script accepts either `utterance_id|audio_path|transcript|speaker_id` rows or `speaker_id audio_path transcript text` rows. It writes `train.jsonl`, `val.jsonl`, `validation_queries.jsonl`, `validation_targets.jsonl`, speaker maps, and `metadata.json`.
-
-### 3. Validation speaker subset
-
-If you already have a validation manifest and want a fixed speaker subset for trial generation, sample speakers first.
-
-Example workflow:
-
-```bash
-uv run python scripts/data_prep/sample_val_speakers.py \
-  --input-file /path/to/all_val_data.txt \
-  --output-file data/val_500spk.txt \
-  --num-speakers 500 \
-  --seed 42
-```
-
-This writes a speaker-filtered validation list such as `data/val_500spk.txt`.
-
-### 4. Enroll/target split
-
-Split the sampled validation subset into per-speaker enroll and target pools:
-
-```bash
-uv run python scripts/data_prep/split_enroll_target.py \
-  --audio-subset data/val_500spk.txt \
-  --enroll-file data/enroll.txt \
-  --target-file data/target.txt \
-  --stats-file data/split_stats.txt \
-  --enroll-ratio 0.3 \
-  --seed 42
-```
-
-Outputs:
-
-- `data/enroll.txt`
-- `data/target.txt`
-- `data/split_stats.txt`
-
-### 5. Create trial JSONL files
-
-Create a higher-`N` trial file first, for example `N=15`:
-
-```bash
-uv run python scripts/data_prep/create_trial_jsonl.py \
-  --enroll-file data/enroll.txt \
-  --target-file data/target.txt \
-  --output-file data/trials_N15.jsonl \
-  --num-utts 15 \
-  --trials-per-speaker 500 \
-  --seed 42
-```
-
-This writes trial rows with:
-
-- positive trials: same-speaker enroll/test pairs
-- negative trials: different-speaker enroll/test pairs
-- `15` utterances per side for each kept trial
-
-### 6. Create aligned lower-`N` trial files
-
-Create aligned smaller-`N` trial files that are deterministic subsets of the larger anchor trial file:
-
-```bash
-uv run python scripts/data_prep/align_trial_pairs_across_n.py \
-  --anchor-jsonl data/trials_N15.jsonl \
-  --n-values 5 10 15 \
-  --selection random_nested \
-  --seed 42
-```
-
-This step is what gives you matched `N=5`, `N=10`, and `N=15` trial files where the smaller trial sides are subsets of the larger ones.
-
-### 7. Build audio+text validation assets
-
-Attach Whisper transcripts and word timestamps to audio-only trial JSONLs:
-
-```bash
-uv run python scripts/data_prep/build_audio_text_val_assets.py \
-  --trial-dir data \
-  --trial-glob 'trials*.jsonl' \
-  --transcription-dir /path/to/whisper_jsonl_shards \
-  --out-dir data/audio_text_val
-```
-
-The transcription JSONL rows should include a filename field such as `file`, `audio`, or `path`, a `text` field, and optionally Whisper-style `segments[*].words`. The script writes audio+text trial JSONLs, soft text manifests, hard-inline word-timestamp manifests, and a report listing missing transcripts.
-
-### 8. Build manifests from trials
-
-Build an audio-only manifest from one or more generated trial JSONLs:
-
-```bash
-uv run python scripts/data_prep/build_audio_only_manifest_from_trials.py \
-  --trial-dir data \
-  --trial-glob 'trials*.jsonl' \
-  --manifest-out data/audio_only_manifest.txt
-```
-
-## Speech Anonymization
-
-The Fisher utterances are anonymized using [StreamVoiceAnon](https://arxiv.org/abs/2601.13948) through the wrapper module:
-
-```text
-python -m multimodal_asv.anonymization.anonymize_with_streamvoiceanon
-```
-
-In the experiments reported in the paper, target utterances were selected from the LibriSpeech `train-clean-360` and `train-other-500` subsets. Only utterances longer than four seconds were included in the target-speaker pool.
-
-Before running anonymization:
-
-- install the optional anonymization dependencies with `uv pip install -e .[anon]`
-- use the bundled StreamVoiceAnon source under `src/multimodal_asv/anonymization/StreamVoiceAnon`
-- place the StreamVoiceAnon pretrained checkpoint under the bundled source tree, or pass an absolute path to it
-- prepare a source manifest with one line per utterance: `source_speaker source_wav`
-- prepare a LibriSpeech reference root containing `train-clean-360` and `train-other-500`
-
-The StreamVoiceAnon source used by the wrapper is included in this repository. If you need to refresh it from upstream, use [Plachtaa/StreamVoiceAnon](https://github.com/Plachtaa/StreamVoiceAnon) as the source.
-
-The StreamVoiceAnon checkpoint is not included in this repository. Download the pretrained artifacts from [Plachta/StreamVoiceAnon on Hugging Face](https://huggingface.co/Plachta/StreamVoiceAnon):
-
-```bash
-mkdir -p src/multimodal_asv/anonymization/StreamVoiceAnon/pretrained_checkpoints
-hf download Plachta/StreamVoiceAnon \
-  --local-dir src/multimodal_asv/anonymization/StreamVoiceAnon/pretrained_checkpoints
-```
-
-The main checkpoint used by the wrapper is expected at:
-
-```text
-src/multimodal_asv/anonymization/StreamVoiceAnon/pretrained_checkpoints/dual_ar_delay_0_8.pth
-```
-
-Alternatively, keep the checkpoint elsewhere and pass its absolute path with `--checkpoint-path`.
-
-### Source-reference pairs
-
-Anonymization uses a source-reference pair file in which each line defines one conversion:
-
-```text
-source_wav|source_speaker|reference_wav|reference_speaker
-```
-
-For example:
-
-```text
-/path/to/fisher/utt1.wav|fisher_spk1|/path/to/librispeech/ref1.flac|libri_spk1
-/path/to/fisher/utt2.wav|fisher_spk1|/path/to/librispeech/ref2.flac|libri_spk2
-```
-
-`source_wav` and `reference_wav` specify the source and target-reference utterances. The speaker IDs are retained as metadata and used to construct deterministic output filenames.
-
-Create the pair file with:
-
-```bash
-uv run python -m multimodal_asv.anonymization.build_source_reference_pairs \
-  --source-manifest data/fisher_manifest.txt \
-  --reference-root /path/to/LibriSpeech \
-  --out data/source_reference_pairs.txt \
-  --metadata-out data/source_reference_pairs.metadata.json \
-  --seed 1234 \
-  --min-reference-seconds 4.0
-```
-
-This samples one reference utterance for each source utterance. Reference utterances shorter than `4.0` seconds are excluded, matching the setting used in the paper experiments.
-
-### Run anonymization
-
-```bash
-uv run python -m multimodal_asv.anonymization.anonymize_with_streamvoiceanon \
-  --pairs-file data/source_reference_pairs.txt \
-  --out-root data/anonymized_fisher \
-  --config-path configs/config_firefly_arvcasr_8192_delay0_8.yaml \
-  --checkpoint-path pretrained_checkpoints/dual_ar_delay_0_8.pth \
-  --delay 2 \
-  --alpha 1.0 \
-  --metadata-out data/anonymized_fisher/metadata.json \
-  --mapping-out data/anonymized_fisher/original_to_anonymized.json
-```
-
-Update `--pairs-file` and `--out-root` for the local setup. By default, the script uses the bundled StreamVoiceAnon source under `src/multimodal_asv/anonymization/StreamVoiceAnon`; override this with `--streamvoiceanon-root` if StreamVoiceAnon is stored elsewhere. The configuration and checkpoint paths are resolved relative to `--streamvoiceanon-root` unless absolute paths are provided.
-
-### Output structure
-
-The anonymized waveforms are written as:
-
-```text
-<out_root>/<source_speaker>/<source_stem>__to__<reference_speaker>__<reference_stem>.wav
-```
-
-For example:
-
-```text
-data/anonymized_fisher/fisher_spk1/utt1__to__libri_spk1__ref1.wav
-```
-
-### Multi-GPU or Slurm execution
-
-For parallel execution, divide the pair file into deterministic shards and launch one process per shard. For example, launch the first of eight workers using:
-
-```bash
-uv run python -m multimodal_asv.anonymization.anonymize_with_streamvoiceanon \
-  --pairs-file data/source_reference_pairs.txt \
-  --out-root data/anonymized_fisher \
-  --config-path configs/config_firefly_arvcasr_8192_delay0_8.yaml \
-  --checkpoint-path pretrained_checkpoints/dual_ar_delay_0_8.pth \
-  --delay 2 \
-  --alpha 1.0 \
-  --num-shards 8 \
-  --shard-id 0
-```
-
-Launch the remaining workers with `--shard-id 1` through `--shard-id 7`, while keeping `--num-shards 8` fixed.
-
-After all shards finish, write the mapping once:
-
-```bash
-uv run python -m multimodal_asv.anonymization.anonymize_with_streamvoiceanon \
-  --pairs-file data/source_reference_pairs.txt \
-  --out-root data/anonymized_fisher \
-  --write-mapping-only \
-  --mapping-out data/anonymized_fisher/original_to_anonymized.json
-```
-
-### Resume an interrupted run
-
-To resume an interrupted run, rerun the same command with the same `--out-root`. The script skips outputs that already exist and processes only the missing conversions.
-
-When previous outputs are stored in another directory, specify that directory using `--skip-existing-root`:
-
-```bash
-uv run python -m multimodal_asv.anonymization.anonymize_with_streamvoiceanon \
-  --pairs-file data/source_reference_pairs.txt \
-  --out-root data/anonymized_fisher_new \
-  --skip-existing-root /path/to/previous_outputs \
-  --config-path configs/config_firefly_arvcasr_8192_delay0_8.yaml \
-  --checkpoint-path pretrained_checkpoints/dual_ar_delay_0_8.pth \
-  --delay 2 \
-  --alpha 1.0
-```
-
-### Rewrite trials and manifests
-
-Use the mapping file to rewrite ASV inputs so they point to anonymized audio:
-
-```bash
-uv run python -m multimodal_asv.anonymization.rewrite_to_anonymized_audio \
-  --mapping-json data/anonymized_fisher/original_to_anonymized.json \
-  --input data/trials_N15.jsonl \
-  --output data/trials_N15_anonymized.jsonl \
-  --format trial-jsonl \
-  --path-resolution absolute
-```
-
-For manifests:
-
-```bash
-uv run python -m multimodal_asv.anonymization.rewrite_to_anonymized_audio \
-  --mapping-json data/anonymized_fisher/original_to_anonymized.json \
-  --input data/audio_only_manifest.txt \
-  --output data/audio_only_manifest_anonymized.txt \
-  --format manifest \
-  --path-resolution absolute
-```
-
-The rewrite command only changes audio paths. It preserves labels, speakers, transcripts, word timestamps, and any extra fields.
-
-## Training and Evaluation
+### 5. Train or evaluate
 
 Train with:
 
 ```bash
-uv run python scripts/train.py --config <config.yaml>
+uv run python scripts/train.py \
+  --config configs/train/audio_only_query_attention.yaml
 ```
 
-Validate a config before launching training:
-
-```bash
-uv run python scripts/train.py --config configs/train/audio_only_query_attention.yaml --dry-run
-```
-
-Manifest formats:
-
-Audio-only:
-
-```text
-speaker_id /path/to/audio.wav
-speaker_id /path/to/another_audio.wav
-```
-
-Audio plus text:
-
-```text
-speaker_id /path/to/audio.wav transcript text goes here
-speaker_id /path/to/another_audio.wav another transcript
-```
-
-For audio-text and hybrid training, everything after the audio path is treated as transcript text. Grouped multi-utterance families still use one utterance per row; the dataloader samples multiple utterances for the same speaker within each episode.
-
-Training workflow:
-
-1. Edit the paper config under `configs/train/`.
-2. Set manifest, checkpoint, and output paths.
-3. Run `--dry-run`.
-4. Launch training with the same config.
-
-Run text-only LUAR evaluation with:
-
-```bash
-uv run python scripts/eval_text_only_trials.py \
-  --trials-jsonl /path/to/text_only_trials.jsonl \
-  --checkpoint-path /path/to/luar_checkpoint.ckpt \
-  --score-out runs/text_only/scores.pt \
-  --summary-out runs/text_only/summary.json
-```
-
-Run audio or multimodal checkpoint evaluation with:
+Evaluate an audio or multimodal checkpoint with:
 
 ```bash
 uv run python scripts/eval_trials.py \
@@ -507,25 +110,117 @@ uv run python scripts/eval_trials.py \
   --summary-out runs/frame_audio_text/summary.json
 ```
 
-Trial JSONL formats:
+See [Training](#training) and [Evaluation](#evaluation) for the complete workflow.
 
-Text-only:
+## Data
 
-```json
-{"label": 1, "enroll": {"transcripts": ["utt one", "utt two"]}, "test": {"transcripts": ["utt three"]}}
+### Fisher corpus
+
+Following prior work on privacy in long-form speech, [*Content Anonymization for Privacy in Long-form Audio*](https://arxiv.org/abs/2510.12780), the experiments use the Fisher English Training Speech corpus:
+
+- [Part 1 speech: LDC2004S13](https://catalog.ldc.upenn.edu/LDC2004S13)
+- [Part 2 speech: LDC2005S13](https://catalog.ldc.upenn.edu/LDC2005S13)
+- [Part 1 transcripts: LDC2004T19](https://catalog.ldc.upenn.edu/LDC2004T19)
+- [Part 2 transcripts: LDC2005T19](https://catalog.ldc.upenn.edu/LDC2005T19)
+
+Fisher contains two-speaker telephone conversations with multiple utterances from each participant. This supports the multi-utterance setting while also providing conversational text from which speaker-dependent lexical, phrasing, and discourse patterns may accumulate.
+
+> **License:** Fisher is distributed by the [Linguistic Data Consortium](https://www.ldc.upenn.edu/) and is not included in this repository. Users must obtain the speech and transcript releases directly from the LDC.
+
+### Anonymized speech
+
+The paper additionally uses Fisher speech anonymized with [StreamVoiceAnon](https://arxiv.org/abs/2601.13948). Each Fisher utterance is anonymized independently using a target utterance randomly sampled from the LibriSpeech [`train-clean-360` and `train-other-500` subsets](https://www.openslr.org/12/). Only reference utterances longer than four seconds are included in the target-speaker pool.
+
+Complete Fisher preparation, trial creation, and anonymization commands are in [docs/data_preparation.md](docs/data_preparation.md).
+
+## Training
+
+Training configurations are stored under `configs/train/`.
+
+### Manifest formats
+
+Audio-only manifests contain one utterance per row:
+
+```text
+speaker_id /path/to/audio.wav
+speaker_id /path/to/another_audio.wav
 ```
 
-Audio or multimodal:
+Audio-plus-text manifests append the transcript after the audio path:
+
+```text
+speaker_id /path/to/audio.wav transcript text goes here
+speaker_id /path/to/another_audio.wav another transcript
+```
+
+For audio-text and hybrid training, everything after the audio path is treated as transcript text. Multi-utterance training still uses one utterance per row; the dataloader samples multiple utterances for the same speaker within each episode.
+
+For full format specifications, see [docs/data_formats.md](docs/data_formats.md).
+
+### Training workflow
+
+1. Select a paper configuration under `configs/train/`.
+2. Set the manifest, checkpoint, and output paths.
+3. Validate the configuration with `--dry-run`.
+4. Launch training with the same configuration.
+
+Validate a configuration:
+
+```bash
+uv run python scripts/train.py \
+  --config configs/train/audio_only_query_attention.yaml \
+  --dry-run
+```
+
+Launch training:
+
+```bash
+uv run python scripts/train.py --config <config.yaml>
+```
+
+## Evaluation
+
+### Audio-only and multimodal evaluation
+
+```bash
+uv run python scripts/eval_trials.py \
+  --config configs/train/frame_audio_text_concat.yaml \
+  --checkpoint-path /path/to/epoch_005.pt \
+  --trials-jsonl /path/to/trials.jsonl \
+  --score-out runs/frame_audio_text/scores.pt \
+  --summary-out runs/frame_audio_text/summary.json
+```
+
+An audio or multimodal trial has the following structure:
 
 ```json
 {"label": 1, "enroll": {"audio_paths": ["audio/spk1_1.wav", "audio/spk1_2.wav"], "transcripts": ["utt one", "utt two"]}, "test": {"audio_paths": ["audio/spk1_3.wav"], "transcripts": ["utt three"]}}
 ```
 
-For audio-only evaluation, omit transcript lists. Relative audio paths are resolved relative to the trial JSONL file. For prosody-based evaluation, the config must provide `data.prosody_transcript_path`.
+For audio-only evaluation, omit the transcript lists. Relative audio paths are resolved relative to the trial JSONL file. For prosody-based evaluation, the configuration must provide `data.prosody_transcript_path`.
+
+### Text-only LUAR evaluation
+
+```bash
+uv run python scripts/eval_text_only_trials.py \
+  --trials-jsonl /path/to/text_only_trials.jsonl \
+  --checkpoint-path /path/to/luar_checkpoint.ckpt \
+  --score-out runs/text_only/scores.pt \
+  --summary-out runs/text_only/summary.json
+```
+
+A text-only trial has the following structure:
+
+```json
+{"label": 1, "enroll": {"transcripts": ["utt one", "utt two"]}, "test": {"transcripts": ["utt three"]}}
+```
+
+For complete trial schemas, see [docs/data_formats.md](docs/data_formats.md).
 
 ## Documentation
 
-- [docs/data_formats.md](docs/data_formats.md) for manifest and trial file formats
+- [docs/data_preparation.md](docs/data_preparation.md): Fisher preparation, trial generation, and StreamVoiceAnon anonymization
+- [docs/data_formats.md](docs/data_formats.md): manifest and trial file formats
 
 ## Citation
 

@@ -7,6 +7,7 @@ outputs/
 ANONYMIZATION_INTEGRATION_PLAN.md
 RELEASE_CHECKLIST.md
 SPLITS_TRIALS_AUDIT.md
+README New.md
 src/multimodal_asv/anonymization/StreamVoiceAnon/pretrained_checkpoints/
 *.pt
 *.pth
