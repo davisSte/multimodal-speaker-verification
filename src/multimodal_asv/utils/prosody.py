@@ -3,11 +3,15 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Any, Dict, Iterable, Sequence
+from typing import Any, Sequence
 
 import numpy as np
-import parselmouth
 import torch
+
+try:
+    import parselmouth
+except Exception:
+    parselmouth = None
 
 try:
     import pronouncing
@@ -61,6 +65,8 @@ def extract_pitch_rate_voicing_features(
     pitch_ceiling: float = 400.0,
     time_step: float = 0.01,
 ) -> dict[str, float]:
+    if parselmouth is None:
+        raise ImportError("praat-parselmouth is required for pitch/rate/voicing feature extraction.")
     if waveform.dim() != 1:
         raise ValueError(f"Expected 1D waveform tensor, got shape {tuple(waveform.shape)}")
     if waveform.numel() == 0:

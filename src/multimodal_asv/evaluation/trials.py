@@ -33,6 +33,7 @@ GROUPED_AUDIO_PROSODY_FAMILIES = {
     "frame_pooled_audio_prosody",
 }
 FLAT_UTTERANCE_FAMILIES = {
+    "utterance_audio_prosody",
     "utterance_audio_text_fusion",
     "hybrid_audio_text",
 }
@@ -82,6 +83,7 @@ def load_checkpoint_model(config: ExperimentConfig, checkpoint_path: Path, devic
     model = build_model(config)
     state = torch.load(str(checkpoint_path), map_location="cpu")
     model_state = state.get("model_state", state)
+    model_state = {key: value for key, value in model_state.items() if not key.startswith("speaker_loss.")}
     model.load_state_dict(model_state, strict=True)
     model = model.to(device)
     model.eval()
@@ -96,6 +98,8 @@ def family_side_pooling(config: ExperimentConfig) -> str:
 
 
 def utterance_fusion_modalities(config: ExperimentConfig) -> tuple[str, ...]:
+    if config.model.family == "utterance_audio_prosody":
+        return ("audio", "pitch")
     fusion = dict(config.model.options.get("fusion", {}) or {})
     modalities = fusion.get("modalities", ("audio", "text"))
     return tuple(str(item) for item in modalities)

@@ -50,6 +50,36 @@ uv pip install -e .[anon]
 
 ### 2. Download pretrained checkpoints
 
+#### Released ASV checkpoints
+
+Pretrained checkpoints for the paper models are hosted on Hugging Face:
+
+```text
+https://huggingface.co/ash56/multimodal-asv-checkpoints
+```
+
+Download the checkpoint and matching evaluation config for the model you want to run:
+
+```bash
+hf download ash56/multimodal-asv-checkpoints \
+  audio_text/rjca_global_luar/checkpoint.pt \
+  audio_text/rjca_global_luar/config.yaml \
+  --local-dir checkpoints
+```
+
+Then evaluate with:
+
+```bash
+uv run python scripts/eval_trials.py \
+  --config checkpoints/audio_text/rjca_global_luar/config.yaml \
+  --checkpoint-path checkpoints/audio_text/rjca_global_luar/checkpoint.pt \
+  --trials-jsonl /path/to/trials.jsonl \
+  --score-out runs/rjca_global_luar/scores.pt \
+  --summary-out runs/rjca_global_luar/summary.json
+```
+
+Use the `config.yaml` downloaded with each checkpoint for evaluation, since it matches the released checkpoint architecture. See the Hugging Face repository for the current list of available models.
+
 #### WavLM-Large
 
 1. Download `WavLM-Large.pt` from [Google Drive](https://drive.google.com/file/d/12-cB34qCTvByWT-QtOcZaqwwO21FLSqU/view).

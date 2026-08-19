@@ -36,6 +36,10 @@ from .utterance_audio_text_fusion import (
     UtteranceAudioTextFusionModel,
     build_utterance_audio_text_fusion_model,
 )
+from .utterance_audio_prosody import (
+    UtteranceAudioProsodyModel,
+    build_utterance_audio_prosody_model,
+)
 from .whisper_wavlm_cross_attention import (
     CrossAttentionAligner,
     WhisperSequenceEncoder,
@@ -56,6 +60,7 @@ __all__ = [
     "QueryAttentionAudioModel",
     "RJCAGlobalRepeatAudioLuarModel",
     "UtteranceAudioTextFusionModel",
+    "UtteranceAudioProsodyModel",
     "WeightedSumFusion",
     "WhisperSequenceEncoder",
     "WhisperWavlmCrossAttentionModel",
@@ -67,5 +72,6 @@ __all__ = [
     "build_query_attention_audio_model",
     "build_rjca_audio_global_luar_model",
     "build_utterance_audio_text_fusion_model",
+    "build_utterance_audio_prosody_model",
     "build_whisper_wavlm_cross_attention_model",
 ]

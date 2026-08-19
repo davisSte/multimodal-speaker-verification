@@ -1,0 +1,38 @@
+name: utt_audio_prosody_pitch_rate_voicing
+
+model:
+  family: utterance_audio_prosody
+  audio_encoder:
+    type: wavlm_ecapa
+    wavlm_checkpoint: /path/to/wavlm_large.pt
+    freeze_wavlm: true
+    backend_kwargs:
+      pooling_mode: attentive_stats
+      minlstm_hidden_size: 3072
+  fusion:
+    modalities: [audio, pitch]
+    audio_dim: 192
+    pitch_dim: 3
+    pitch_projection_dim: 32
+    final_dim: 192
+    pre_concat_layernorm: true
+    normalize_pre_concat: false
+    normalize: true
+  speaker_loss:
+    margin: 0.2
+    scale: 30.0
+
+data:
+  manifest: /path/to/train_audio_manifest.txt
+  sample_rate: 16000
+  segment_seconds: 4.0
+  prosody_feature_set: pitch_rate_voicing
+  prosody_transcript_path: /path/to/whisper_word_timestamps
+
+training:
+  epochs: 5
+  batch_size: 64
+  learning_rate: 1e-4
+  weight_decay: 0.0
+
+output_dir: /path/to/output/utt_audio_prosody_pitch_rate_voicing

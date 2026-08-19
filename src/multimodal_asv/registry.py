@@ -12,6 +12,7 @@ from .models import (
     build_hybrid_audio_text_model,
     build_query_attention_audio_model,
     build_rjca_audio_global_luar_model,
+    build_utterance_audio_prosody_model,
     build_utterance_audio_text_fusion_model,
     build_whisper_wavlm_cross_attention_model,
 )
@@ -56,6 +57,13 @@ MODEL_FAMILIES: Dict[str, ModelFamily] = {
         category="Utterance-Level Aggregation",
         description="Combines an audio utterance embedding with LUAR or prosody features.",
         builder=build_utterance_audio_text_fusion_model,
+    ),
+    "utterance_audio_prosody": ModelFamily(
+        key="utterance_audio_prosody",
+        display_name="Utterance-Level Audio-Prosody Fusion",
+        category="Utterance-Level Aggregation",
+        description="Combines an audio utterance embedding with pitch, speaking-rate, and voicing features.",
+        builder=build_utterance_audio_prosody_model,
     ),
     "frame_pooled_audio": ModelFamily(
         key="frame_pooled_audio",

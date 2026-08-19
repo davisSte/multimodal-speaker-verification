@@ -103,7 +103,7 @@ def build_utterance_fusion_family_data(config: ExperimentConfig) -> DataPipeline
     options = dict(config.data.options)
     model_options = dict(config.model.options)
     fusion = dict(model_options.get("fusion", {}) or {})
-    modalities = tuple(fusion.get("modalities", ("audio", "text")))
+    modalities = ("audio", "pitch") if config.model.family == "utterance_audio_prosody" else tuple(fusion.get("modalities", ("audio", "text")))
     if "pitch" in modalities and "text" not in modalities:
         dataset, dataloader = build_flat_audio_prosody_dataloader(
             manifest_path=config.data.manifest,
@@ -129,6 +129,7 @@ DATA_BUILDERS: Dict[str, DataBuilder] = {
     "hybrid_audio_text": build_flat_audio_text_family_data,
     "query_attention_audio": build_grouped_audio_family_data,
     "rjca_audio_global_luar": build_grouped_audio_text_family_data,
+    "utterance_audio_prosody": build_utterance_fusion_family_data,
     "utterance_audio_text_fusion": build_utterance_fusion_family_data,
     "whisper_wavlm_cross_attention": build_grouped_audio_family_data,
 }
