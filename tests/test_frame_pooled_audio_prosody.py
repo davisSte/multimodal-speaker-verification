@@ -55,3 +55,29 @@ training: {}
     model = build_model(load_config(config_path))
 
     assert isinstance(model, FramePooledAudioProsodyModel)
+
+
+def test_frame_pooled_audio_prosody_loads_released_checkpoint_key_names() -> None:
+    from multimodal_asv.models.frame_pooled_audio import FramePooledAudioModel
+
+    model = FramePooledAudioProsodyModel(
+        audio_model=FramePooledAudioModel(
+            frame_pooler=MeanStdFramePooler(frame_dim=4, embedding_dim=6),
+            embedding_dim=6,
+        ),
+        prosody_dim=3,
+        prosody_projection_dim=4,
+        embedding_dim=6,
+    )
+    state = model.state_dict()
+    released_style_state = {}
+    for key, value in state.items():
+        if key.startswith("audio_model.audio_encoder."):
+            key = key.replace("audio_model.audio_encoder.", "audio_encoder.", 1)
+        elif key.startswith("prosody_proj."):
+            key = key.replace("prosody_proj.", "pitch_proj.", 1)
+        elif key.startswith("prosody_pre_concat_ln."):
+            key = key.replace("prosody_pre_concat_ln.", "pitch_pre_concat_ln.", 1)
+        released_style_state[key] = value
+
+    model.load_state_dict(released_style_state, strict=True)

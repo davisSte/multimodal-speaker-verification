@@ -93,6 +93,18 @@ class FramePooledAudioProsodyModel(nn.Module):
             fused = F.normalize(fused, dim=-1)
         return fused
 
+    def load_state_dict(self, state_dict, strict: bool = True, assign: bool = False):
+        remapped = {}
+        for key, value in state_dict.items():
+            if key.startswith("audio_encoder."):
+                key = f"audio_model.{key}"
+            elif key.startswith("pitch_proj."):
+                key = key.replace("pitch_proj.", "prosody_proj.", 1)
+            elif key.startswith("pitch_pre_concat_ln."):
+                key = key.replace("pitch_pre_concat_ln.", "prosody_pre_concat_ln.", 1)
+            remapped[key] = value
+        return super().load_state_dict(remapped, strict=strict, assign=assign)
+
     @staticmethod
     def _encode_grouped_prosody_stats(pitch_features_grouped: torch.Tensor) -> torch.Tensor:
         if pitch_features_grouped.dim() != 3:
@@ -106,7 +118,7 @@ class FramePooledAudioProsodyModel(nn.Module):
 
 
 def build_frame_pooled_audio_prosody_model(config: ExperimentConfig) -> FramePooledAudioProsodyModel:
-    """Build frame-level audio+prosody fusion from a paper-facing config."""
+    """Build frame-level audio+prosody fusion from a config."""
     options = dict(config.model.options)
     speaker_loss = dict(options.pop("speaker_loss", {}) or {})
     prosody = dict(options.pop("prosody", {}) or {})

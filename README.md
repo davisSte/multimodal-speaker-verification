@@ -58,7 +58,19 @@ Pretrained checkpoints for the paper models are hosted on Hugging Face:
 https://huggingface.co/ash56/multimodal-asv-checkpoints
 ```
 
-Download the checkpoint and matching evaluation config for the model you want to run:
+Evaluate directly from Hugging Face paths:
+
+```bash
+uv run python scripts/eval_trials.py \
+  --config hf://ash56/multimodal-asv-checkpoints/audio_only/query_attention/config.yaml \
+  --checkpoint-path hf://ash56/multimodal-asv-checkpoints/audio_only/query_attention/checkpoint.pt \
+  --wavlm-checkpoint /path/to/WavLM-Large.pt \
+  --trials-jsonl /path/to/trials.jsonl \
+  --score-out runs/audio_only_query_attention/scores.pt \
+  --summary-out runs/audio_only_query_attention/summary.json
+```
+
+Or download the checkpoint and matching evaluation config first:
 
 ```bash
 hf download ash56/multimodal-asv-checkpoints \
@@ -67,18 +79,72 @@ hf download ash56/multimodal-asv-checkpoints \
   --local-dir checkpoints
 ```
 
-Then evaluate with:
+Then evaluate from the local files:
 
 ```bash
 uv run python scripts/eval_trials.py \
   --config checkpoints/audio_text/rjca_global_luar/config.yaml \
   --checkpoint-path checkpoints/audio_text/rjca_global_luar/checkpoint.pt \
+  --wavlm-checkpoint /path/to/WavLM-Large.pt \
+  --text-encoder-checkpoint /path/to/luar_checkpoint.ckpt \
   --trials-jsonl /path/to/trials.jsonl \
   --score-out runs/rjca_global_luar/scores.pt \
   --summary-out runs/rjca_global_luar/summary.json
 ```
 
 Use the `config.yaml` downloaded with each checkpoint for evaluation, since it matches the released checkpoint architecture. See the Hugging Face repository for the current list of available models.
+
+To load a released checkpoint directly in Python and score two multi-utterance sides:
+
+```python
+from pathlib import Path
+
+import torch
+import torch.nn.functional as F
+
+from multimodal_asv.config import load_config
+from multimodal_asv.evaluation.trials import encode_trial_side, load_checkpoint_model
+from multimodal_asv.utils.huggingface import resolve_hf_or_local_path
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+config_path = resolve_hf_or_local_path(
+    "hf://ash56/multimodal-asv-checkpoints/audio_only/query_attention/config.yaml"
+)
+checkpoint_path = resolve_hf_or_local_path(
+    "hf://ash56/multimodal-asv-checkpoints/audio_only/query_attention/checkpoint.pt"
+)
+
+config = load_config(config_path)
+config.model.options["audio_encoder"]["wavlm_checkpoint"] = "/path/to/WavLM-Large.pt"
+
+model = load_checkpoint_model(config, checkpoint_path, device)
+
+enroll = {"audio_paths": ["speaker_a_utt1.wav", "speaker_a_utt2.wav"]}
+test = {"audio_paths": ["candidate_utt1.wav", "candidate_utt2.wav"]}
+
+enroll_embedding = encode_trial_side(
+    model,
+    config,
+    enroll,
+    trial_dir=Path("."),
+    transcript_index=None,
+    device=device,
+)
+test_embedding = encode_trial_side(
+    model,
+    config,
+    test,
+    trial_dir=Path("."),
+    transcript_index=None,
+    device=device,
+)
+
+score = F.cosine_similarity(enroll_embedding, test_embedding, dim=0).item()
+print(score)
+```
+
+For text or audio-text models, also set the local `model.text_encoder.checkpoint_path` required by that model's config.
 
 #### WavLM-Large
 
@@ -254,7 +320,7 @@ For complete trial schemas, see [docs/data_formats.md](docs/data_formats.md).
 
 ## Citation
 
-If you use this pipeline, please cite:
+Please cite this work when using the pipeline:
 
 ```bibtex
 @article{garg2026multimodal,
@@ -264,3 +330,7 @@ If you use this pipeline, please cite:
   year={2026}
 }
 ```
+
+**Disclaimer:** The code was organized and cleaned up for public release with the help of OpenAI Codex.
+
+If you find bugs or inconsistencies, please open an issue or submit a pull request.

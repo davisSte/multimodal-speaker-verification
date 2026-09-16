@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from argparse import Namespace
 
 import torch
 import torchaudio
@@ -8,10 +9,56 @@ import torchaudio
 from multimodal_asv.config import load_config
 from multimodal_asv.evaluation.trials import encode_trial_side, family_side_pooling, load_checkpoint_model
 from multimodal_asv.registry import build_model
+from multimodal_asv.utils.huggingface import parse_hf_uri, resolve_hf_or_local_path
+from scripts.eval_trials import apply_runtime_overrides
 
 
 def _write_wav(path, values: torch.Tensor, sample_rate: int = 16000) -> None:
     torchaudio.save(str(path), values.unsqueeze(0), sample_rate)
+
+
+def test_hf_uri_paths_can_name_released_checkpoint_files(tmp_path) -> None:
+    repo_id, filename = parse_hf_uri(
+        "hf://ash56/multimodal-asv-checkpoints/audio_text/rjca_global_luar/checkpoint.pt"
+    )
+
+    assert repo_id == "ash56/multimodal-asv-checkpoints"
+    assert filename == "audio_text/rjca_global_luar/checkpoint.pt"
+    assert resolve_hf_or_local_path(tmp_path / "local.pt") == tmp_path / "local.pt"
+
+
+def test_eval_script_runtime_overrides_frontend_checkpoint_paths(tmp_path) -> None:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+name: tiny_audio_text
+model:
+  family: utterance_audio_text_fusion
+  audio_encoder:
+    type: identity
+    wavlm_checkpoint: /placeholder/wavlm.pt
+  text_encoder:
+    type: static
+    checkpoint_path: /placeholder/luar.ckpt
+  fusion:
+    modalities: [audio, text]
+data: {}
+training: {}
+""",
+        encoding="utf-8",
+    )
+    config = load_config(config_path)
+
+    apply_runtime_overrides(
+        config,
+        Namespace(
+            wavlm_checkpoint=tmp_path / "WavLM-Large.pt",
+            text_encoder_checkpoint=tmp_path / "luar.ckpt",
+        ),
+    )
+
+    assert config.model.options["audio_encoder"]["wavlm_checkpoint"] == str(tmp_path / "WavLM-Large.pt")
+    assert config.model.options["text_encoder"]["checkpoint_path"] == str(tmp_path / "luar.ckpt")
 
 
 def test_eval_trials_loads_checkpoint_and_scores_mean_pooled_audio(tmp_path) -> None:

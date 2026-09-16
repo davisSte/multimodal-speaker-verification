@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import getpass
 import logging
-import os
-import pwd
 from pathlib import Path
-from urllib.parse import urlparse
 from typing import Any
+from urllib.parse import urlparse
 
 
 def resolve_asset_path(
@@ -74,22 +71,11 @@ def with_default_download_root(
 
 
 def resolve_output_dir(output_dir: str | Path | None, *, experiment_name: str) -> Path:
-    """Resolve the effective output directory, defaulting to /exp/<user>/multimodal_asv/<experiment>."""
+    """Resolve the effective output directory."""
 
     if output_dir is not None:
         return Path(output_dir).expanduser()
-    username = _current_username()
-    return Path("/exp") / username / "multimodal_asv" / experiment_name
-
-
-def _current_username() -> str:
-    env_user = os.environ.get("USER") or os.environ.get("LOGNAME")
-    if env_user:
-        return env_user
-    try:
-        return pwd.getpwuid(os.getuid()).pw_name
-    except KeyError:
-        return getpass.getuser()
+    return Path("runs") / experiment_name
 
 
 __all__ = ["resolve_asset_path", "resolve_output_dir", "with_default_download_root"]
