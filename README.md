@@ -86,7 +86,7 @@ uv run python scripts/eval_trials.py \
   --summary-out runs/rjca_global_luar/summary.json
 ```
 
-Use the `config.yaml` downloaded with each checkpoint for evaluation, since it matches the released checkpoint architecture. See the Hugging Face repository for the current list of available models.
+Use the `config.yaml` downloaded with each checkpoint for evaluation. See the Hugging Face repository for the current list of available models.
 
 To load a released checkpoint directly in Python and score two multi-utterance sides:
 
