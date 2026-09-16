@@ -2,9 +2,7 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-2607.19636-b31b1b.svg)](https://arxiv.org/abs/2607.19636)
 
-Official implementation of **[“Multimodal Speaker Verification as a Threat to Speaker Anonymization”](https://arxiv.org/abs/2607.19636)**.
-
-This repository supports multi-utterance speaker verification using acoustic, linguistic, and prosodic information. It includes audio-only, text-only, and multimodal training and evaluation, along with utilities for Fisher data preparation and StreamVoiceAnon anonymization.
+Official implementation of **[“Multimodal Speaker Verification as a Threat to Speaker Anonymization”](https://arxiv.org/abs/2607.19636)**..
 
 ## Abstract
 
@@ -52,11 +50,7 @@ uv pip install -e .[anon]
 
 #### Released ASV checkpoints
 
-Pretrained checkpoints for the paper models are hosted on Hugging Face:
-
-```text
-https://huggingface.co/ash56/multimodal-asv-checkpoints
-```
+Pretrained checkpoints for the paper models are hosted on [Hugging Face](https://huggingface.co/ash56/multimodal-asv-checkpoints).
 
 Evaluate directly from Hugging Face paths:
 
