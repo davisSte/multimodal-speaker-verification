@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
-tests/
+/tests/
 outputs/
 ANONYMIZATION_INTEGRATION_PLAN.md
 RELEASE_CHECKLIST.md

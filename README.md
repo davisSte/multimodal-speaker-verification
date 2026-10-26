@@ -307,6 +307,20 @@ A text-only trial has the following structure:
 
 For complete trial schemas, see [docs/data_formats.md](docs/data_formats.md).
 
+### Closed-set re-identification and LID
+
+EER evaluates pairwise verification and does not directly measure a 1-to-N identity-linkage
+attack. The project-local [LID evaluator](lid/README.md) reports Local Information Disclosure
+(ALID, PDR/NDR, conditional and maximum LID) together with rank-1, rank-5, and mean reciprocal
+rank. It requires exhaustive development and test score matrices with disjoint identities.
+
+```bash
+uv run python lid/evaluate.py \
+  --dev-scores /path/to/dev_scores.csv \
+  --test-scores /path/to/test_scores.csv \
+  --output-dir runs/my_system/lid
+```
+
 ## Documentation
 
 - [docs/data_preparation.md](docs/data_preparation.md): Fisher preparation, trial generation, and StreamVoiceAnon anonymization
